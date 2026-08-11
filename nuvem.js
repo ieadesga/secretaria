@@ -164,11 +164,11 @@ async function enviarNuvem(){
 
  const meus=[], alheios=[];
  faltando.forEach(function(k){
-  if(donos[k]===usuario.id)meus.push(k);else alheios.push(k);
+  if(donos[k]===usuario.id||temIntencao(k))meus.push(k);else alheios.push(k);
  });
 
  if(alheios.length){
-  console.log('[nuvem] ausencias de outros autores IGNORADAS:',alheios.length,alheios);
+  console.log('[nuvem] ausencias sem intencao de excluir, IGNORADAS:',alheios.length,alheios);
   await baixarNuvem();
  }
 
@@ -193,6 +193,7 @@ async function enviarNuvem(){
     continue;
    }
    delete ultimoEstado[k];
+   delete intencaoExcluir[k];
    marcarExcluido(k);
   }
  }
@@ -623,6 +624,7 @@ try{
     if(m)prepararSequencia(m,id);
     if(m)ocultarCampos(m);
     if(m)avisoPendente(m,id);
+    if(m)ligarBotaoExcluir(m,id);
     if(m)mostrarAutor(m,id);
    },40);
   };
@@ -2149,7 +2151,7 @@ function marcarVersao(){
  if(!alvo){setTimeout(marcarVersao,700);return}
  const p=document.createElement('p');
  p.id='versaoAgenda';
- p.textContent='Agenda v102 \u00b7 03.08.2026';
+ p.textContent='Agenda v103 \u00b7 03.08.2026';
  alvo.appendChild(p);
 }
 
@@ -2235,6 +2237,31 @@ function ligarFiltroMesNoFiltered(){
 
 
 
+
+
+/* ---------- intencao explicita de excluir ---------- */
+let intencaoExcluir = {};
+const JANELA_INTENCAO = 20000;
+
+function registrarIntencao(id){
+ if(!id)return;
+ intencaoExcluir[String(id)]=Date.now();
+}
+function temIntencao(id){
+ const t=intencaoExcluir[String(id)];
+ return !!t && (Date.now()-t) < JANELA_INTENCAO;
+}
+function ligarBotaoExcluir(m,id){
+ if(!m||!id)return;
+ const bts=m.querySelectorAll('button');
+ for(let i=0;i<bts.length;i++){
+  const t=(bts[i].textContent||'').trim().toLowerCase();
+  if(!/^(excluir|apagar|remover|deletar)/.test(t))continue;
+  if(bts[i]._ligadoIntencao)continue;
+  bts[i]._ligadoIntencao=true;
+  bts[i].addEventListener('click',function(){registrarIntencao(id)},true);
+ }
+}
 
 /* ---------- verdade do servidor ao recusar ---------- */
 async function conferirNoServidor(id){
