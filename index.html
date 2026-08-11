@@ -327,6 +327,35 @@ body[data-tema="dark"] .novo-acesso{border-color:#24343c}
 body[data-tema="dark"] .ac-titulo{color:#c3a558}
 
 
+
+.linha-au{display:grid;grid-template-columns:118px 1fr auto;gap:12px;align-items:baseline;
+  padding:11px 0;border-bottom:1px solid var(--linha)}
+.au-quando{font-family:var(--mono);font-size:10.5px;color:var(--suave);line-height:1.5}
+.au-quando b{display:block;color:var(--texto);font-weight:600}
+.au-corpo{min-width:0}
+.au-quem{font-size:.9rem;font-weight:600;color:var(--texto)}
+.au-quem span{font-weight:400;color:var(--suave);font-size:.82rem;margin-left:6px}
+.au-alvo{display:block;font-size:.84rem;color:var(--suave);margin-top:2px;line-height:1.45}
+.au-acao{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  padding:4px 10px;border-radius:99px;white-space:nowrap}
+.au-acao.criar{background:var(--azul-fundo);color:#3d6478}
+.au-acao.aprovar{background:var(--verde-fundo);color:#3a6132}
+.au-acao.recusar{background:#fbe9e7;color:#8f3d35}
+.au-acao.excluir{background:#f3e6e4;color:#7c342c}
+.au-acao.editar{background:var(--chama-fundo);color:#8a4413}
+.au-acao.acesso{background:#efe7f7;color:#5b3a86}
+.au-acao.sessao{background:#eef3f2;color:#4e5f67}
+body[data-tema="dark"] .linha-au{border-color:#24343c}
+body[data-tema="dark"] .au-quem{color:#e6f0f4}
+body[data-tema="dark"] .au-quem span,body[data-tema="dark"] .au-alvo,
+body[data-tema="dark"] .au-quando{color:#93a8b1}
+body[data-tema="dark"] .au-quando b{color:#cfe0e6}
+body[data-tema="dark"] .au-acao.criar{background:#132832;color:#9dbecd}
+body[data-tema="dark"] .au-acao.aprovar{background:#122a1c;color:#a3c8ad}
+body[data-tema="dark"] .au-acao.recusar,body[data-tema="dark"] .au-acao.excluir{background:#2a1614;color:#e5a49c}
+body[data-tema="dark"] .au-acao.editar{background:#2c2415;color:#dcb381}
+body[data-tema="dark"] .au-acao.acesso{background:#221a2e;color:#c4a9e0}
+body[data-tema="dark"] .au-acao.sessao{background:#1b2429;color:#a6b6bd}
 .ac-filtros{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
 .ac-fchip{display:inline-flex;align-items:center;gap:6px;font-family:var(--sans);
   font-size:.8rem;font-weight:600;padding:6px 13px;border-radius:99px;cursor:pointer;
@@ -662,7 +691,7 @@ body[data-tema="dark"] .barra .onde{color:#8ea6b0}
     <span class="dica-prot" id="protDica">Digite o número que aparece no comprovante do pedido.</span>
   </div>
 
-  <p class="rodape">Assembleia de Deus no Rio Grande do Norte · São Gonçalo do Amarante<br><span style="opacity:.55">Portal v31 · 11.08.2026</span></p>
+  <p class="rodape">Assembleia de Deus no Rio Grande do Norte · São Gonçalo do Amarante<br><span style="opacity:.55">Portal v33 · 11.08.2026</span></p>
 </div>
 
 
@@ -722,6 +751,19 @@ body[data-tema="dark"] .barra .onde{color:#8ea6b0}
 
 
 <input type="file" id="arqPdf" accept="application/pdf,image/jpeg,image/png" style="display:none">
+
+
+<div class="tela" id="telaAudit"><div class="caixa" style="max-width:960px">
+  <div class="cabeca"><h2>Auditoria</h2><button type="button" class="fechar" id="auX">&times;</button></div>
+  <p class="sub">Quem acessou, quando e o que fez. As anotações mais recentes primeiro.</p>
+  <div class="ac-filtros" id="auFiltros"></div>
+  <div class="ac-busca"><input id="auBusca" placeholder="Buscar por nome, ação, evento ou protocolo" autocomplete="off"></div>
+  <div id="auCorpo"><p class="vazio-lista">Carregando...</p></div>
+  <div class="fim" style="justify-content:space-between">
+    <span class="dica" id="auResumo"></span>
+    <button type="button" class="bt vazio" id="auMais">Carregar mais</button>
+  </div>
+</div></div>
 
 <div class="tela" id="telaAcessos"><div class="caixa" style="max-width:820px">
   <div class="cabeca"><h2>Acessos da equipe</h2><button type="button" class="fechar" id="acX">&times;</button></div>
@@ -957,6 +999,7 @@ function pintarBarra(){
       (papel ? '<span class="funcao">' + papel + '</span>' : '') +
       (onde ? '<span class="onde">' + onde + '</span>' : '') + '</span>' +
       '<span class="acoes-barra">' +
+        (ehSecretaria() ? '<button type="button" class="bt-tema" id="btAudit" title="Auditoria">\ud83d\udcdc</button>' : '') +
         (ehSecretaria() ? '<button type="button" class="bt-tema" id="btAcessos" title="Acessos da equipe">\u2699</button>' : '') +
         '<button type="button" class="bt-tema" id="btChave" title="Trocar minha senha">\ud83d\udd11</button>' +
         '<button type="button" class="bt-tema" id="btTema"></button>' +
@@ -965,6 +1008,7 @@ function pintarBarra(){
     el('#btSair').onclick = sair;
     el('#btChave').onclick = abrirTrocaSenha;
     if(el('#btAcessos')) el('#btAcessos').onclick = abrirAcessos;
+    if(el('#btAudit')) el('#btAudit').onclick = () => abrirAuditoria(true);
     el('#btTema').onclick = alternarTema;
     aplicarTema(temaAtual());
   } else {
@@ -1054,6 +1098,7 @@ async function fazerLogin(){
 
 async function sair(){
   if(!sb) return;
+  await anotarSessao('saiu do sistema');
   await sb.auth.signOut();
   recado('Voc\u00ea saiu. A agenda continua dispon\u00edvel para consulta.');
 }
@@ -1069,6 +1114,126 @@ async function carregarPerfil(){
 
 
 
+
+
+/* ===================== AUDITORIA ===================== */
+const AU_PAGINA = 60;
+let auFiltro = '', auLimite = AU_PAGINA;
+
+function classeAcao(a){
+  a = String(a || '');
+  if(/criado|aberto/.test(a)) return 'criar';
+  if(/aprovado|pronto|entregue|reativado/.test(a)) return 'aprovar';
+  if(/recusado/.test(a)) return 'recusar';
+  if(/exclu/.test(a)) return 'excluir';
+  if(/editado|preparo|aguardando/.test(a)) return 'editar';
+  if(/acesso/.test(a)) return 'acesso';
+  return 'sessao';
+}
+
+const AU_GRUPOS = [
+  { f:'',        t:'Tudo' },
+  { f:'evento',  t:'Eventos' },
+  { f:'pedido',  t:'Documentos' },
+  { f:'acesso',  t:'Acessos' },
+  { f:'sistema', t:'Sessões' }
+];
+
+function montarFiltrosAudit(){
+  const cx = el('#auFiltros');
+  if(!cx) return;
+  let html = '';
+  AU_GRUPOS.forEach(g => {
+    if(g.f === 'sistema' && !ehSistema()) return;
+    html += '<button type="button" class="ac-fchip' + (auFiltro === g.f ? ' on' : '') +
+            '" data-f="' + g.f + '">' + g.t + '</button>';
+  });
+  if(cx.innerHTML !== html){
+    cx.innerHTML = html;
+    cx.querySelectorAll('.ac-fchip').forEach(b => {
+      b.onclick = () => { auFiltro = b.getAttribute('data-f'); auLimite = AU_PAGINA; abrirAuditoria(); };
+    });
+  }
+}
+
+async function abrirAuditoria(reinicia){
+  if(!ehSecretaria()){ recado('Acesso restrito à Secretaria Geral.'); return; }
+  if(reinicia){ auFiltro = ''; auLimite = AU_PAGINA; if(el('#auBusca')) el('#auBusca').value = ''; }
+  el('#telaAudit').classList.add('ver');
+  montarFiltrosAudit();
+  const cx = el('#auCorpo');
+  if(!cx.querySelector('.linha-au')) cx.innerHTML = '<p class="vazio-lista">Carregando...</p>';
+
+  let q = sb.from('auditoria').select('*').order('quando', { ascending:false }).limit(auLimite);
+  if(auFiltro === 'evento')  q = q.like('acao', 'evento%');
+  if(auFiltro === 'pedido')  q = q.like('acao', 'pedido%');
+  if(auFiltro === 'acesso')  q = q.like('acao', 'acesso%');
+  if(auFiltro === 'sistema') q = q.like('acao', '%sistema');
+
+  const r = await q;
+  if(r.error){ cx.innerHTML = '<p class="vazio-lista">Erro: ' + r.error.message + '</p>'; return; }
+
+  const busca = (el('#auBusca') ? el('#auBusca').value.trim().toLowerCase() : '');
+  let dados = r.data || [];
+  if(busca) dados = dados.filter(x =>
+    ((x.nome||'') + ' ' + (x.acao||'') + ' ' + (x.alvo||'') + ' ' + (x.detalhe||''))
+    .toLowerCase().indexOf(busca) >= 0);
+
+  if(!dados.length){
+    cx.innerHTML = '<p class="vazio-lista">' +
+      (busca ? 'Nada encontrado para "' + busca + '".' : 'Nenhuma anotação por aqui.') + '</p>';
+    el('#auResumo').textContent = '';
+    el('#auMais').style.display = 'none';
+    return;
+  }
+
+  cx.innerHTML = '';
+  let diaAtual = '';
+  dados.forEach(x => {
+    const d = new Date(x.quando);
+    const dia = isNaN(d) ? '' : d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric' });
+    const hora = isNaN(d) ? '' : d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+    if(dia !== diaAtual){
+      diaAtual = dia;
+      const t = document.createElement('p');
+      t.className = 'ac-grupo';
+      t.innerHTML = dia;
+      cx.appendChild(t);
+    }
+    const li = document.createElement('div');
+    li.className = 'linha-au';
+    li.innerHTML =
+      '<span class="au-quando"><b>' + hora + '</b>' + dia + '</span>' +
+      '<span class="au-corpo">' +
+        '<span class="au-quem">' + (x.nome || '—') +
+        '<span>' + (ROTULO_PAPEL[x.papel] || x.papel || '') + '</span></span>' +
+        (x.alvo || x.detalhe
+          ? '<span class="au-alvo">' + [x.alvo, x.detalhe].filter(Boolean).join(' · ') + '</span>'
+          : '') +
+      '</span>' +
+      '<span class="au-acao ' + classeAcao(x.acao) + '">' + (x.acao || '') + '</span>';
+    cx.appendChild(li);
+  });
+
+  el('#auResumo').textContent = dados.length + (dados.length > 1 ? ' anotações' : ' anotação') +
+    (r.data.length >= auLimite ? ' · há mais registros' : ' · início do histórico');
+  el('#auMais').style.display = (r.data.length >= auLimite) ? '' : 'none';
+}
+
+el('#auX').onclick = () => el('#telaAudit').classList.remove('ver');
+el('#auMais').onclick = () => { auLimite += AU_PAGINA; abrirAuditoria(); };
+if(el('#auBusca')){
+  let tmA = null;
+  el('#auBusca').addEventListener('input', () => {
+    clearTimeout(tmA); tmA = setTimeout(abrirAuditoria, 250);
+  });
+}
+
+/* ---------- registrar entrada e saída ---------- */
+async function anotarSessao(acao){
+  if(!sb || !usuario) return;
+  try{ await sb.from('auditoria').insert([{ user_id: usuario.id, acao: acao }]); }catch(e){}
+}
 
 /* ===================== ACESSOS DA EQUIPE ===================== */
 const DEPARTAMENTOS_LISTA = ['UMADESGA','SEMEAR','DENOC','DEFAD','DEPIN','DEMAD',
@@ -2279,7 +2444,7 @@ function marcarAtividade(){
 
 async function encerrarPorInatividade(){
   try{ localStorage.removeItem(CHAVE_ATIV); }catch(e){}
-  ['#telaForm','#telaOk','#telaLista','#telaSenha','#telaAcessos'].forEach(s => {
+  ['#telaForm','#telaOk','#telaLista','#telaSenha','#telaAcessos','#telaAudit'].forEach(s => {
     const t = el(s); if(t) t.classList.remove('ver');
   });
   if(sb) await sb.auth.signOut();
@@ -2321,6 +2486,7 @@ async function iniciar(){
     usuario = sess ? sess.user : null;
     await carregarPerfil();
     pintarBarra();
+    if(_ev === 'SIGNED_IN') anotarSessao('entrou no sistema');
     if(_ev === 'SIGNED_IN' && perfil){
       recado('Bem-vindo, <b>' + (perfil.nome || usuario.email) + '</b>.');
     }
