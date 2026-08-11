@@ -167,8 +167,20 @@ async function enviarNuvem(){
   if(donos[k]===usuario.id||temIntencao(k))meus.push(k);else alheios.push(k);
  });
 
+ if(faltando.length){
+  console.log('[excluir] faltando:',faltando,
+              '| autorizados:',meus,'| ignorados:',alheios,
+              '| papel:',(perfil&&perfil.papel),
+              '| donos:',faltando.map(function(k){return k+'='+(donos[k]||'sem dono')}).join(', '),
+              '| intencao:',faltando.map(function(k){return k+'='+temIntencao(k)}).join(', '),
+              '| naoApaga:',Object.keys(naoApaga).join(',')||'nenhum');
+ }
+
  if(alheios.length){
-  console.log('[nuvem] ausencias sem intencao de excluir, IGNORADAS:',alheios.length,alheios);
+  console.log('[excluir] ignorados por falta de intencao:',alheios);
+  aviso('Exclus\u00e3o n\u00e3o autorizada pela prote\u00e7\u00e3o local. '+
+        'Abra o evento e use o bot\u00e3o Excluir do formul\u00e1rio. '+
+        '[ids: '+alheios.join(', ')+']');
   await baixarNuvem();
  }
 
@@ -180,9 +192,19 @@ async function enviarNuvem(){
  }else{
   for(let i=0;i<meus.length;i++){
    const k=meus[i];
-   if(naoApaga[k])continue;
+   if(naoApaga[k]){
+    console.log('[excluir]',k,'ja marcado como nao apagavel nesta sessao');
+    aviso('Este evento j\u00e1 foi recusado pelo servidor nesta sess\u00e3o. '+
+          'Recarregue a p\u00e1gina e tente de novo.');
+    continue;
+   }
    const d=await sb.from('eventos').delete().eq('id',k).select('id');
-   if(d.error){console.log('[nuvem] nao consegui excluir',k,d.error.message);continue}
+   console.log('[excluir] resposta do servidor para',k,':',
+               d.error?('ERRO '+d.error.message):((d.data||[]).length+' linha(s) apagada(s)'));
+   if(d.error){
+    aviso('O servidor recusou a exclus\u00e3o: '+d.error.message);
+    continue;
+   }
    if(!d.data||!d.data.length){
     const res=await tratarExclusaoSemEfeito(k,'excluir um dos eventos');
     if(res==='recusado'){
@@ -2151,7 +2173,7 @@ function marcarVersao(){
  if(!alvo){setTimeout(marcarVersao,700);return}
  const p=document.createElement('p');
  p.id='versaoAgenda';
- p.textContent='Agenda v103 \u00b7 03.08.2026';
+ p.textContent='Agenda v104 \u00b7 03.08.2026';
  alvo.appendChild(p);
 }
 
@@ -2275,6 +2297,8 @@ async function conferirNoServidor(id){
 
 async function tratarExclusaoSemEfeito(id,contexto){
  const v=await conferirNoServidor(id);
+ console.log('[excluir] conferencia de',id,':',
+             v.inexistente?'nao existe mais no servidor':(v.erro?('erro '+v.erro):JSON.stringify(v.linha)));
 
  if(v.inexistente){
   marcarExcluido(id);
