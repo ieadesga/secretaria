@@ -755,22 +755,11 @@ function rotuloPapel(x){
 }
 
 function abrirConfig(){
- if(!sb||!ehSecretaria()){toast('Acesso restrito \u00e0 Secretaria Geral');return}
- if(document.getElementById('telaConfig'))return;
- const bg=document.createElement('div');
- bg.id='telaConfig';
- bg.innerHTML=
-  '<div class="cf-card">'+
-   '<div class="cf-topo"><h3>Acessos da equipe</h3>'+
-   '<button type="button" class="chip" id="cfFechar">Fechar</button></div>'+
-   '<div id="cfLista" class="cf-lista">Carregando...</div>'+
-   '<p class="cf-nota">Para dar acesso a alguem: crie a conta no painel do Supabase, em <b>Authentication &rsaquo; Users</b>. '+
-   'A pessoa aparece nesta lista automaticamente como <b>Leitor</b>; defina a fun\u00e7\u00e3o e o setor, e clique em Salvar.</p>'+
-  '</div>';
- document.body.appendChild(bg);
- document.getElementById('cfFechar').onclick=function(){bg.remove()};
- carregarListaPerfis();
+ if(!ehSecretaria()){aviso('Acesso restrito \u00e0 Secretaria Geral');return}
+ aviso('Abrindo os acessos da equipe na Secretaria...');
+ setTimeout(function(){location.href='index.html?painel=acessos'},900);
 }
+
 
 async function carregarListaPerfis(){
  const box=document.getElementById('cfLista');
@@ -2160,7 +2149,7 @@ function marcarVersao(){
  if(!alvo){setTimeout(marcarVersao,700);return}
  const p=document.createElement('p');
  p.id='versaoAgenda';
- p.textContent='Agenda v101 \u00b7 03.08.2026';
+ p.textContent='Agenda v102 \u00b7 03.08.2026';
  alvo.appendChild(p);
 }
 

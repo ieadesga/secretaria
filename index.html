@@ -632,7 +632,7 @@ body[data-tema="dark"] .barra .onde{color:#8ea6b0}
     <span class="dica-prot" id="protDica">Digite o número que aparece no comprovante do pedido.</span>
   </div>
 
-  <p class="rodape">Assembleia de Deus no Rio Grande do Norte · São Gonçalo do Amarante<br><span style="opacity:.55">Portal v27 · 03.08.2026</span></p>
+  <p class="rodape">Assembleia de Deus no Rio Grande do Norte · São Gonçalo do Amarante<br><span style="opacity:.55">Portal v29 · 11.08.2026</span></p>
 </div>
 
 
@@ -710,7 +710,7 @@ body[data-tema="dark"] .barra .onde{color:#8ea6b0}
           Você pode alterá-la aqui se quiser.</span></div>
         <div class="campo"><label>Função *</label><select id="nvPapel"></select></div>
         <div class="campo"><label>Setor</label><select id="nvSetor"></select></div>
-        <div class="campo largo"><label>Congregação</label><select id="nvCongr"></select></div>
+        <div class="campo largo"><label id="nvLbQuarto">Congregação</label><select id="nvCongr"></select></div>
       </div>
       <div class="erro-form" id="nvErro"></div>
       <div id="nvPronto" style="display:none">
@@ -1030,7 +1030,7 @@ async function carregarPerfil(){
   perfil = null;
   if(!sb || !usuario) return;
   const r = await sb.from('perfis')
-    .select('nome,papel,setor,congregacao,senha_provisoria,ativo')
+    .select('nome,papel,setor,congregacao,departamento,senha_provisoria,ativo')
     .eq('user_id', usuario.id).maybeSingle();
   if(!r.error && r.data) perfil = r.data;
 }
@@ -1039,12 +1039,15 @@ async function carregarPerfil(){
 
 
 /* ===================== ACESSOS DA EQUIPE ===================== */
-const PAPEIS_BASE = ['admin', 'secretario', 'secretario_congr', 'leitor'];
+const DEPARTAMENTOS_LISTA = ['UMADESGA','SEMEAR','DENOC','DEFAD','DEPIN','DEMAD',
+                            'DE3id','DEFAM','DENEC','DIRETORIA','UNIFICADO'];
+const PAPEIS_BASE = ['admin', 'secretario', 'secretario_congr', 'departamento', 'leitor'];
 const ROTULO_PAPEL = {
   sistema: 'Administrador do sistema',
   admin: 'Secretaria Geral',
   secretario: 'Secretário de Setor',
   secretario_congr: 'Secretário de Congregação',
+  departamento: 'Departamento',
   leitor: 'Leitor'
 };
 
@@ -1067,6 +1070,7 @@ function opcoesPapel(atual){
 
 function opcoesSetorAc(papel, atual){
   atual = atual || '';
+  if(papel === 'departamento') return '<option value="">– não se aplica</option>';
   const vazio = (papel === 'secretario' || papel === 'secretario_congr')
     ? '– selecione o setor' : '– todos do campo';
   let h = '<option value=""' + (atual === '' ? ' selected' : '') + '>' + vazio + '</option>';
@@ -1076,8 +1080,18 @@ function opcoesSetorAc(papel, atual){
   return h;
 }
 
+function opcoesDeptoAc(atual){
+  atual = atual || '';
+  let h = '<option value=""' + (atual === '' ? ' selected' : '') + '>– escolha o departamento</option>';
+  DEPARTAMENTOS_LISTA.forEach(d => {
+    h += '<option value="' + d + '"' + (atual === d ? ' selected' : '') + '>' + d + '</option>';
+  });
+  return h;
+}
+
 function opcoesCongrAc(papel, setor, atual){
   atual = atual || '';
+  if(papel === 'departamento') return opcoesDeptoAc(atual);
   let lista, vazio;
   if(papel === 'admin' || papel === 'sistema'){
     lista = CONGREGACOES.map(c => c.nome);
@@ -1109,7 +1123,7 @@ async function abrirAcessos(){
   if(el('#acFormNovo') && el('#acFormNovo').style.display === 'none') el('#acAbrirNovo').style.display = '';
   const cx = el('#acCorpo');
   cx.innerHTML = '<p class="vazio-lista">Carregando...</p>';
-  const r = await sb.from('perfis').select('user_id,nome,email,papel,setor,congregacao,senha_provisoria,ativo').order('nome');
+  const r = await sb.from('perfis').select('user_id,nome,email,papel,setor,congregacao,departamento,senha_provisoria,ativo').order('nome');
   if(r.error){ cx.innerHTML = '<p class="vazio-lista">Erro: ' + r.error.message + '</p>'; return; }
   let dados = r.data || [];
   if(!ehSistema()) dados = dados.filter(p => p.papel !== 'sistema');
@@ -1128,7 +1142,9 @@ async function abrirAcessos(){
         (p.ativo === false ? ' <b class="ac-inat">acesso desativado</b>' : '') + '</span></div>' +
       '<select class="ac-papel">' + opcoesPapel(p.papel) + '</select>' +
       '<select class="ac-setor">' + opcoesSetorAc(p.papel, p.setor) + '</select>' +
-      '<select class="ac-congr">' + opcoesCongrAc(p.papel, p.setor, p.congregacao) + '</select>' +
+      '<select class="ac-congr" title="Congregação ou departamento">' +
+        opcoesCongrAc(p.papel, p.setor, p.papel === 'departamento' ? p.departamento : p.congregacao) +
+      '</select>' +
       '<button type="button" class="bt pq ac-salvar">Salvar</button>' +
       '<div class="ac-status"></div>';
     if(p.ativo === false) li.classList.add('inativo');
@@ -1140,7 +1156,7 @@ async function abrirAcessos(){
           stt  = li.querySelector('.ac-status');
 
     sPap.addEventListener('change', () => {
-      const chefe = (sPap.value === 'admin' || sPap.value === 'sistema');
+      const chefe = (sPap.value === 'admin' || sPap.value === 'sistema' || sPap.value === 'departamento');
       const set = chefe ? '' : sSet.value;
       sSet.innerHTML = opcoesSetorAc(sPap.value, set);
       sCon.innerHTML = opcoesCongrAc(sPap.value, set, chefe ? '' : sCon.value);
@@ -1178,8 +1194,16 @@ async function abrirAcessos(){
     li.querySelector('.ac-salvar').onclick = async ev => {
       const papel = sPap.value;
       const setor = sSet.value || null;
-      const congregacao = sCon.value || null;
+      const quarto = sCon.value || null;
+      const ehDep = (papel === 'departamento');
+      const congregacao = ehDep ? null : quarto;
+      const departamento = ehDep ? quarto : null;
       const nome = li.querySelector('.ac-nome').value.trim() || null;
+      if(ehDep && !departamento){
+        stt.className = 'ac-status ruim';
+        stt.textContent = 'Escolha o departamento deste perfil.';
+        return;
+      }
       const precisaSetor = (papel === 'secretario' || papel === 'secretario_congr');
       if(precisaSetor && !setor){
         stt.className = 'ac-status ruim';
@@ -1202,7 +1226,8 @@ async function abrirAcessos(){
       const bt = ev.currentTarget;
       bt.disabled = true; bt.textContent = '...';
       const u = await sb.from('perfis')
-        .update({ nome: nome, papel: papel, setor: setor, congregacao: congregacao })
+        .update({ nome: nome, papel: papel, setor: setor,
+                  congregacao: congregacao, departamento: departamento })
         .eq('user_id', p.user_id).select('user_id');
       bt.disabled = false; bt.textContent = 'Salvar';
       if(u.error){
@@ -1248,12 +1273,19 @@ function montarCamposNovo(){
   sp.innerHTML = opcoesPapel('leitor');
   function refaz(){
     const p = sp.value;
-    const chefe = (p === 'admin' || p === 'sistema' || p === 'leitor');
+    const ehDep = (p === 'departamento');
+    const chefe = (p === 'admin' || p === 'sistema' || p === 'leitor' || ehDep);
     ss.innerHTML = opcoesSetorAc(p, chefe ? '' : ss.value);
-    sc.innerHTML = opcoesCongrAc(p, chefe ? '' : ss.value, '');
+    sc.innerHTML = ehDep ? opcoesDeptoAc('') : opcoesCongrAc(p, chefe ? '' : ss.value, '');
+    el('#nvLbQuarto').textContent = ehDep ? 'Departamento *' : 'Congregação';
+    const caixaSetor = ss.closest('.campo');
+    if(caixaSetor) caixaSetor.style.display = ehDep ? 'none' : '';
   }
   sp.onchange = refaz;
-  ss.onchange = () => { sc.innerHTML = opcoesCongrAc(sp.value, ss.value, ''); };
+  ss.onchange = () => {
+    if(sp.value === 'departamento') return;
+    sc.innerHTML = opcoesCongrAc(sp.value, ss.value, '');
+  };
   refaz();
 }
 
@@ -1264,7 +1296,10 @@ async function criarAcesso(){
   const senha = el('#nvSenha').value;
   const papel = el('#nvPapel').value;
   const setor = el('#nvSetor').value || null;
-  const congregacao = el('#nvCongr').value || null;
+  const quarto = el('#nvCongr').value || null;
+  const ehDep = (papel === 'departamento');
+  const congregacao = ehDep ? null : quarto;
+  const departamento = ehDep ? quarto : null;
 
   if(!nome){ er.textContent = 'Informe o nome completo.'; el('#nvNome').focus(); return; }
   if(!email || email.indexOf('@') < 0){ er.textContent = 'Informe um e-mail válido.'; el('#nvEmail').focus(); return; }
@@ -1272,6 +1307,7 @@ async function criarAcesso(){
   const precisaSetor = (papel === 'secretario' || papel === 'secretario_congr');
   if(precisaSetor && !setor){ er.textContent = 'Este perfil precisa de um setor.'; return; }
   if(papel === 'secretario_congr' && !congregacao){ er.textContent = 'Este perfil precisa de uma congregação.'; return; }
+  if(ehDep && !departamento){ er.textContent = 'Escolha o departamento deste perfil.'; return; }
 
   const aux = clienteAuxiliar();
   if(!aux){ er.textContent = 'Sem conexão com o servidor.'; return; }
@@ -1305,7 +1341,7 @@ async function criarAcesso(){
     await new Promise(res => setTimeout(res, 400));
     const u = await sb.from('perfis')
       .update({ nome: nome, papel: papel, setor: setor, congregacao: congregacao,
-                senha_provisoria: true })
+                departamento: departamento, senha_provisoria: true })
       .eq('user_id', novoId).select('user_id');
     if(!u.error && u.data && u.data.length) ok = true;
   }
@@ -1354,6 +1390,14 @@ el('#nvCancelar').onclick = () => {
 el('#nvCriar').onclick = criarAcesso;
 
 el('#acX').onclick = () => el('#telaAcessos').classList.remove('ver');
+
+function abrirPainelPorURL(){
+  let p = null;
+  try{ p = new URLSearchParams(location.search).get('painel'); }catch(e){}
+  if(!p) return;
+  try{ history.replaceState({}, '', location.pathname); }catch(e){}
+  if(p === 'acessos') setTimeout(() => { if(ehSecretaria()) abrirAcessos(); }, 500);
+}
 
 /* ---------- consulta por protocolo ---------- */
 function normalizarProtocolo(v){
@@ -2150,7 +2194,7 @@ async function iniciar(){
   await carregarCongregacoes();
   if(usuario) marcarAtividade();
   pintarBarra();
-  if(await conferirAtivo()) conferirSenhaProvisoria();
+  if(await conferirAtivo()){ conferirSenhaProvisoria(); abrirPainelPorURL(); }
   carregarNotas();
   contarSolicitacoes();
   sb.auth.onAuthStateChange(async function(_ev, sess){
