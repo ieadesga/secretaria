@@ -691,7 +691,7 @@ body[data-tema="dark"] .barra .onde{color:#8ea6b0}
     <span class="dica-prot" id="protDica">Digite o número que aparece no comprovante do pedido.</span>
   </div>
 
-  <p class="rodape">Assembleia de Deus no Rio Grande do Norte · São Gonçalo do Amarante<br><span style="opacity:.55">Portal v33 · 11.08.2026</span></p>
+  <p class="rodape">Assembleia de Deus no Rio Grande do Norte · São Gonçalo do Amarante<br><span style="opacity:.55">Portal v34 · 11.08.2026</span></p>
 </div>
 
 
@@ -1205,7 +1205,7 @@ async function abrirAuditoria(reinicia){
     li.innerHTML =
       '<span class="au-quando"><b>' + hora + '</b>' + dia + '</span>' +
       '<span class="au-corpo">' +
-        '<span class="au-quem">' + (x.nome || '—') +
+        '<span class="au-quem">' + (x.nome || 'não identificado') +
         '<span>' + (ROTULO_PAPEL[x.papel] || x.papel || '') + '</span></span>' +
         (x.alvo || x.detalhe
           ? '<span class="au-alvo">' + [x.alvo, x.detalhe].filter(Boolean).join(' · ') + '</span>'
@@ -1232,7 +1232,15 @@ if(el('#auBusca')){
 /* ---------- registrar entrada e saída ---------- */
 async function anotarSessao(acao){
   if(!sb || !usuario) return;
-  try{ await sb.from('auditoria').insert([{ user_id: usuario.id, acao: acao }]); }catch(e){}
+  try{
+    await sb.from('auditoria').insert([{
+      user_id: usuario.id,
+      nome: (perfil && perfil.nome) ? perfil.nome : usuario.email,
+      papel: (perfil && perfil.papel) ? perfil.papel : 'sem perfil',
+      acao: acao,
+      alvo: usuario.email
+    }]);
+  }catch(e){ console.log('[auditoria] nao consegui anotar a sessao:', e); }
 }
 
 /* ===================== ACESSOS DA EQUIPE ===================== */
@@ -2485,8 +2493,8 @@ async function iniciar(){
   sb.auth.onAuthStateChange(async function(_ev, sess){
     usuario = sess ? sess.user : null;
     await carregarPerfil();
-    pintarBarra();
     if(_ev === 'SIGNED_IN') anotarSessao('entrou no sistema');
+    pintarBarra();
     if(_ev === 'SIGNED_IN' && perfil){
       recado('Bem-vindo, <b>' + (perfil.nome || usuario.email) + '</b>.');
     }
