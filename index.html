@@ -325,6 +325,36 @@ body[data-tema="dark"] #nvCred{background:#132832;border-color:#c3a558;color:#cf
 #acFormNovo{margin-top:4px}
 body[data-tema="dark"] .novo-acesso{border-color:#24343c}
 body[data-tema="dark"] .ac-titulo{color:#c3a558}
+
+
+.ac-filtros{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.ac-fchip{display:inline-flex;align-items:center;gap:6px;font-family:var(--sans);
+  font-size:.8rem;font-weight:600;padding:6px 13px;border-radius:99px;cursor:pointer;
+  border:1px solid var(--linha);background:var(--branco);color:var(--suave);transition:.16s}
+.ac-fchip:hover{border-color:var(--azul);color:var(--azul)}
+.ac-fchip.on{background:var(--azul);border-color:var(--azul);color:#fff}
+.ac-fchip i{font-style:normal;font-size:.72rem;font-weight:700;background:rgba(0,0,0,.07);
+  padding:1px 6px;border-radius:99px}
+.ac-fchip.on i{background:rgba(255,255,255,.22)}
+body[data-tema="dark"] .ac-fchip{background:#16242b;border-color:#2a3c45;color:#93a8b1}
+body[data-tema="dark"] .ac-fchip:hover{border-color:#7fd0ea;color:#7fd0ea}
+body[data-tema="dark"] .ac-fchip.on{background:#1a6d8f;border-color:#1a6d8f;color:#fff}
+body[data-tema="dark"] .ac-fchip i{background:rgba(255,255,255,.12)}
+.ac-busca{margin-bottom:14px}
+.ac-busca input{width:100%;box-sizing:border-box;font-size:.92rem;padding:10px 13px;
+  border:1px solid var(--linha);border-radius:9px;background:var(--branco);color:var(--texto)}
+.ac-busca input:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 3px rgba(11,79,108,.1)}
+.ac-grupo{display:flex;align-items:center;gap:10px;margin:20px 0 6px;
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--louro-forte)}
+.ac-grupo:first-child{margin-top:2px}
+.ac-grupo span{font-family:var(--sans);font-size:10.5px;letter-spacing:0;font-weight:700;
+  background:var(--azul-fundo);color:#3d6478;padding:2px 8px;border-radius:99px}
+.ac-grupo::after{content:"";flex:1;height:1px;background:var(--linha)}
+body[data-tema="dark"] .ac-busca input{background:#16242b;border-color:#2a3c45;color:#e2ecf0}
+body[data-tema="dark"] .ac-grupo{color:#c3a558}
+body[data-tema="dark"] .ac-grupo span{background:#132832;color:#9dbecd}
+body[data-tema="dark"] .ac-grupo::after{background:#24343c}
 .linha-ac{display:grid;grid-template-columns:1.4fr .95fr .95fr 1.1fr auto auto;gap:9px;align-items:center;
   padding:13px 0;border-bottom:1px solid var(--linha)}
 .ac-quem input{width:100%;box-sizing:border-box;font-size:.9rem;font-weight:600;padding:7px 9px;
@@ -632,7 +662,7 @@ body[data-tema="dark"] .barra .onde{color:#8ea6b0}
     <span class="dica-prot" id="protDica">Digite o número que aparece no comprovante do pedido.</span>
   </div>
 
-  <p class="rodape">Assembleia de Deus no Rio Grande do Norte · São Gonçalo do Amarante<br><span style="opacity:.55">Portal v29 · 11.08.2026</span></p>
+  <p class="rodape">Assembleia de Deus no Rio Grande do Norte · São Gonçalo do Amarante<br><span style="opacity:.55">Portal v31 · 11.08.2026</span></p>
 </div>
 
 
@@ -727,6 +757,8 @@ body[data-tema="dark"] .barra .onde{color:#8ea6b0}
       </div>
     </div>
   </div>
+  <div class="ac-filtros" id="acFiltros"></div>
+  <div class="ac-busca"><input id="acBusca" placeholder="Buscar por nome, e-mail, setor, congregação ou departamento" autocomplete="off"></div>
   <div id="acCorpo"><p class="vazio-lista">Carregando...</p></div>
   <p class="dica" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--linha)">
     A senha provisória deve ser informada à pessoa, que a troca no primeiro acesso.
@@ -1040,7 +1072,7 @@ async function carregarPerfil(){
 
 /* ===================== ACESSOS DA EQUIPE ===================== */
 const DEPARTAMENTOS_LISTA = ['UMADESGA','SEMEAR','DENOC','DEFAD','DEPIN','DEMAD',
-                            'DE3id','DEFAM','DENEC','DIRETORIA','UNIFICADO'];
+                            'DE3id','DEFAM','DENEC','DIRETORIA'];
 const PAPEIS_BASE = ['admin', 'secretario', 'secretario_congr', 'departamento', 'leitor'];
 const ROTULO_PAPEL = {
   sistema: 'Administrador do sistema',
@@ -1086,6 +1118,9 @@ function opcoesDeptoAc(atual){
   DEPARTAMENTOS_LISTA.forEach(d => {
     h += '<option value="' + d + '"' + (atual === d ? ' selected' : '') + '>' + d + '</option>';
   });
+  if(atual && DEPARTAMENTOS_LISTA.indexOf(atual) < 0){
+    h += '<option value="' + atual + '" selected>' + atual + ' (fora da lista)</option>';
+  }
   return h;
 }
 
@@ -1117,6 +1152,37 @@ function opcoesCongrAc(papel, setor, atual){
   return h;
 }
 
+
+let filtroPerfil = '';
+
+function montarFiltrosAcesso(dados){
+  const cx = el('#acFiltros');
+  if(!cx) return;
+  const tipos = [
+    { p:'',                 t:'Todos' },
+    { p:'sistema',          t:'Administrador' },
+    { p:'admin',            t:'Secretaria Geral' },
+    { p:'secretario',       t:'Setor' },
+    { p:'secretario_congr', t:'Congregação' },
+    { p:'departamento',     t:'Departamentos' },
+    { p:'leitor',           t:'Leitores' }
+  ];
+  let html = '';
+  tipos.forEach(x => {
+    if(x.p === 'sistema' && !ehSistema()) return;
+    const n = x.p ? dados.filter(d => (d.papel || 'leitor') === x.p).length : dados.length;
+    if(x.p && !n) return;
+    html += '<button type="button" class="ac-fchip' + (filtroPerfil === x.p ? ' on' : '') +
+            '" data-p="' + x.p + '">' + x.t + '<i>' + n + '</i></button>';
+  });
+  if(cx.innerHTML !== html){
+    cx.innerHTML = html;
+    cx.querySelectorAll('.ac-fchip').forEach(b => {
+      b.onclick = () => { filtroPerfil = b.getAttribute('data-p'); abrirAcessos(); };
+    });
+  }
+}
+
 async function abrirAcessos(){
   if(!ehSecretaria()){ recado('Acesso restrito à Secretaria Geral.'); return; }
   el('#telaAcessos').classList.add('ver');
@@ -1130,7 +1196,53 @@ async function abrirAcessos(){
   if(!dados.length){ cx.innerHTML = '<p class="vazio-lista">Nenhum perfil cadastrado.</p>'; return; }
 
   cx.innerHTML = '';
-  dados.forEach(p => {
+
+  const GRUPOS = [
+    { p:'sistema',          t:'Administrador do sistema' },
+    { p:'admin',            t:'Secretaria Geral' },
+    { p:'secretario',       t:'Secretários de Setor' },
+    { p:'secretario_congr', t:'Secretários de Congregação' },
+    { p:'departamento',     t:'Departamentos' },
+    { p:'leitor',           t:'Leitores' }
+  ];
+
+  const busca = (el('#acBusca') ? el('#acBusca').value.trim().toLowerCase() : '');
+  let visiveis = 0;
+
+  montarFiltrosAcesso(dados);
+
+  GRUPOS.forEach(g => {
+    if(filtroPerfil && g.p !== filtroPerfil) return;
+    let doGrupo = dados.filter(x => (x.papel || 'leitor') === g.p);
+    if(busca) doGrupo = doGrupo.filter(x =>
+      ((x.nome || '') + ' ' + (x.email || '') + ' ' + (x.congregacao || '') +
+       ' ' + (x.setor || '') + ' ' + (x.departamento || '')).toLowerCase().indexOf(busca) >= 0);
+    if(!doGrupo.length) return;
+    visiveis += doGrupo.length;
+    const tit = document.createElement('p');
+    tit.className = 'ac-grupo';
+    tit.innerHTML = g.t + '<span>' + doGrupo.length + '</span>';
+    cx.appendChild(tit);
+    doGrupo.forEach(p => cx.appendChild(montarLinhaAcesso(p)));
+  });
+
+  const fora = filtroPerfil ? [] : dados.filter(x => !GRUPOS.some(g => g.p === (x.papel || 'leitor')));
+  if(fora.length){
+    const tit = document.createElement('p');
+    tit.className = 'ac-grupo';
+    tit.innerHTML = 'Outros<span>' + fora.length + '</span>';
+    cx.appendChild(tit);
+    fora.forEach(p => cx.appendChild(montarLinhaAcesso(p)));
+    visiveis += fora.length;
+  }
+
+  if(!visiveis){
+    cx.innerHTML = '<p class="vazio-lista">' +
+      (busca ? 'Nenhum perfil encontrado para "' + busca + '".'
+             : 'Nenhum perfil neste grupo.') + '</p>';
+  }
+
+  function montarLinhaAcesso(p){
     const li = document.createElement('div');
     li.className = 'linha-ac';
     li.innerHTML =
@@ -1244,7 +1356,8 @@ async function abrirAcessos(){
       stt.textContent = 'Acesso atualizado.';
       if(usuario && p.user_id === usuario.id){ await carregarPerfil(); pintarBarra(); }
     };
-  });
+    return li;
+  }
 }
 
 
@@ -1390,6 +1503,13 @@ el('#nvCancelar').onclick = () => {
 el('#nvCriar').onclick = criarAcesso;
 
 el('#acX').onclick = () => el('#telaAcessos').classList.remove('ver');
+if(el('#acBusca')){
+  let tmB = null;
+  el('#acBusca').addEventListener('input', () => {
+    clearTimeout(tmB);
+    tmB = setTimeout(abrirAcessos, 250);
+  });
+}
 
 function abrirPainelPorURL(){
   let p = null;
