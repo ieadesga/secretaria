@@ -691,7 +691,7 @@ body[data-tema="dark"] .barra .onde{color:#8ea6b0}
     <span class="dica-prot" id="protDica">Digite o número que aparece no comprovante do pedido.</span>
   </div>
 
-  <p class="rodape">Assembleia de Deus no Rio Grande do Norte · São Gonçalo do Amarante<br><span style="opacity:.55">Portal v34 · 11.08.2026</span></p>
+  <p class="rodape">Assembleia de Deus no Rio Grande do Norte · São Gonçalo do Amarante<br><span style="opacity:.55">Portal v36 · 11.08.2026</span></p>
 </div>
 
 
@@ -1727,16 +1727,16 @@ async function notasSolicitacoes(){
     return r.error ? 0 : (r.count || 0);
   }
 
-  if(perfil.papel === 'admin'){
+  if(ehSecretaria()){
     const ag = await contar('aguardando');
     if(ag) itens.push({ tipo:'acao', filtro:'aguardando',
-      txt: '<b>' + ag + ' solicita\u00e7\u00e3o' + (ag>1?'\u00f5es':'') + '</b> de documento aguardando sua an\u00e1lise.',
+      txt: '<b>' + ag + (ag>1 ? ' solicita\u00e7\u00f5es' : ' solicita\u00e7\u00e3o') + '</b> de documento aguardando sua an\u00e1lise.',
       ir: 'Analisar \u2192' });
     const pr = await contar('preparo');
     if(pr) itens.push({ tipo:'espera', filtro:'preparo',
       txt: '<b>' + pr + ' documento' + (pr>1?'s':'') + '</b> em preparo com voc\u00ea.',
       ir: 'Ver \u2192' });
-  } else {
+  } else if(perfil.papel === 'secretario' || perfil.papel === 'secretario_congr'){
     const rec = await contar('recusado');
     if(rec) itens.push({ tipo:'acao', filtro:'recusado',
       txt: '<b>' + rec + ' pedido' + (rec>1?'s':'') + '</b> de documento ' +
@@ -1770,7 +1770,7 @@ async function carregarNotas(){
     return r.error ? 0 : (r.count || 0);
   }
 
-  if(perfil.papel === 'admin'){
+  if(ehSecretaria()){
     const n = await contar(q => q.eq('aprovado', false).is('recusa', null));
     if(n) itens.push({
       tipo: 'acao',
@@ -1778,7 +1778,8 @@ async function carregarNotas(){
       ir: 'Analisar \u2192',
       alvo: 'agenda.html?painel=aprovacoes'
     });
-  } else if(perfil.papel === 'secretario' || perfil.papel === 'secretario_congr'){
+  } else if(perfil.papel === 'secretario' || perfil.papel === 'secretario_congr'
+            || perfil.papel === 'departamento'){
     const rec = await contar(q => q.eq('criado_por', usuario.id).not('recusa', 'is', null));
     if(rec) itens.push({
       tipo: 'acao',
@@ -2472,6 +2473,22 @@ function conferirInatividade(){
   }
 }
 setInterval(conferirInatividade, 20000);
+
+
+/* ---------- manter as notificações em dia ---------- */
+setInterval(() => {
+  if(!usuario || !perfil) return;
+  if(document.hidden) return;
+  const abertaAlguma = ['#telaForm','#telaLista','#telaAcessos','#telaAudit','#telaSenha']
+    .some(s => { const t = el(s); return t && t.classList.contains('ver'); });
+  if(abertaAlguma) return;
+  carregarNotas();
+  contarSolicitacoes();
+}, 45000);
+
+document.addEventListener('visibilitychange', () => {
+  if(!document.hidden && usuario && perfil){ carregarNotas(); contarSolicitacoes(); }
+});
 
 /* ---------- partida ---------- */
 async function iniciar(){
