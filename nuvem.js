@@ -219,7 +219,7 @@ async function enviarNuvem(){
    if(!d.data||!d.data.length){
     const res=await tratarExclusaoSemEfeito(k,'excluir um dos eventos');
     passoExcl('Conferencia no servidor: '+res);
-    mostrarRelatorioExcl();
+    if(res==='recusado'||res==='erro')mostrarRelatorioExcl();
     if(res==='recusado'){
      naoApaga[k]=true;
      await baixarNuvem();
@@ -2236,7 +2236,7 @@ function marcarVersao(){
  if(!alvo){setTimeout(marcarVersao,700);return}
  const p=document.createElement('p');
  p.id='versaoAgenda';
- p.textContent='Agenda v107 \u00b7 03.08.2026';
+ p.textContent='Agenda v108 \u00b7 03.08.2026';
  alvo.appendChild(p);
 }
 
@@ -2529,7 +2529,10 @@ async function excluirRecusado(id){
  }
  if(!r.data||!r.data.length){
   const res=await tratarExclusaoSemEfeito(id,'excluir o evento');
-  if(res==='recusado')naoApaga[String(id)]=true;
+  if(res==='recusado'||res==='erro'){
+   naoApaga[String(id)]=true;
+   mostrarRelatorioExcl();
+  }
   return;
  }
  marcarExcluido(id);
