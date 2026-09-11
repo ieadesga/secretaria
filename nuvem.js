@@ -176,7 +176,7 @@ async function enviarNuvem(){
    passoExcl('Evento '+k+' \u2014 autor registrado: '+
      (donos[k]?String(donos[k]).slice(0,8):'nenhum')+
      ' | aprovado: '+String(aprovados[k])+
-     ' | clique em Excluir capturado: '+(temIntencao(k)?'sim':'nao'));
+     ' | autoriza\u00e7\u00e3o: '+motivoIntencao(k));
   });
   console.log('[excluir] faltando:',faltando,
               '| autorizados:',meus,'| ignorados:',alheios,
@@ -2236,7 +2236,7 @@ function marcarVersao(){
  if(!alvo){setTimeout(marcarVersao,700);return}
  const p=document.createElement('p');
  p.id='versaoAgenda';
- p.textContent='Agenda v106 \u00b7 03.08.2026';
+ p.textContent='Agenda v107 \u00b7 03.08.2026';
  alvo.appendChild(p);
 }
 
@@ -2354,25 +2354,50 @@ function mostrarRelatorioExcl(){
 
 /* ---------- intencao explicita de excluir ---------- */
 let intencaoExcluir = {};
+let ultimoAberto = {id:null, quando:0};
 const JANELA_INTENCAO = 20000;
+const JANELA_ABERTO = 180000;
 
 function registrarIntencao(id){
  if(!id)return;
  intencaoExcluir[String(id)]=Date.now();
 }
 function temIntencao(id){
- const t=intencaoExcluir[String(id)];
- return !!t && (Date.now()-t) < JANELA_INTENCAO;
+ const k=String(id);
+ const t=intencaoExcluir[k];
+ if(t && (Date.now()-t) < JANELA_INTENCAO)return true;
+ if(ultimoAberto.id===k && (Date.now()-ultimoAberto.quando) < JANELA_ABERTO)return true;
+ return false;
+}
+
+function motivoIntencao(id){
+ const k=String(id);
+ const t=intencaoExcluir[k];
+ if(t && (Date.now()-t) < JANELA_INTENCAO)return 'clique no botao Excluir';
+ if(ultimoAberto.id===k && (Date.now()-ultimoAberto.quando) < JANELA_ABERTO){
+  return 'evento aberto por voce ha '+Math.round((Date.now()-ultimoAberto.quando)/1000)+'s';
+ }
+ return 'nenhuma';
 }
 function ligarBotaoExcluir(m,id){
  if(!m||!id)return;
- const bts=m.querySelectorAll('button');
- for(let i=0;i<bts.length;i++){
-  const t=(bts[i].textContent||'').trim().toLowerCase();
-  if(!/^(excluir|apagar|remover|deletar)/.test(t))continue;
-  if(bts[i]._ligadoIntencao)continue;
-  bts[i]._ligadoIntencao=true;
-  bts[i].addEventListener('click',function(){registrarIntencao(id)},true);
+ ultimoAberto={id:String(id),quando:Date.now()};
+ const alvos=m.querySelectorAll('button,a,[role="button"],.btn,.chip,span[onclick],div[onclick]');
+ for(let i=0;i<alvos.length;i++){
+  const el=alvos[i];
+  const t=semAcento((el.textContent||'')+' '+(el.getAttribute('title')||'')+' '+
+                    (el.getAttribute('aria-label')||'')+' '+(el.className||''));
+  if(!/exclu|apag|remov|delet|lixeir|trash|delete/.test(t))continue;
+  if(el._ligadoIntencao)continue;
+  el._ligadoIntencao=true;
+  el.addEventListener('click',function(){registrarIntencao(id)},true);
+ }
+ /* rede de seguranca: qualquer clique dentro do formulario mantem o evento em foco */
+ if(!m._ligadoFoco){
+  m._ligadoFoco=true;
+  m.addEventListener('click',function(){
+   if(ultimoAberto.id)ultimoAberto.quando=Date.now();
+  },true);
  }
 }
 
