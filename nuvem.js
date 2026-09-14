@@ -2241,7 +2241,7 @@ function marcarVersao(){
  if(!alvo){setTimeout(marcarVersao,700);return}
  const p=document.createElement('p');
  p.id='versaoAgenda';
- p.textContent='Agenda v109 \u00b7 03.08.2026';
+ p.textContent='Agenda v109 \u00b7 14.09.2026';
  alvo.appendChild(p);
 }
 
