@@ -221,7 +221,8 @@ function imprimirPDF(){
   const nome=d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
   html+='<div class="p-day"><h2>'+nome.charAt(0).toUpperCase()+nome.slice(1)+'</h2>';
   grupos[dia].forEach(e=>{
-   const meta=[e.setor||'Sede',e.scope||'Setor',e.category,e.location,e.responsible?'Resp.: '+e.responsible:''].filter(Boolean).map(escapeHtml).join(' · ');
+   const pendPDF=(typeof aprovados!=='undefined'&&aprovados[String(e.id)]===false);
+   const meta=[e.setor||'Sede',e.scope||'Setor',e.category,e.departamento||'',e.location,e.responsible?'Resp.: '+e.responsible:''].filter(Boolean).map(escapeHtml).join(' · ')+(pendPDF?' · AGUARDANDO APROVAÇÃO':'');
    html+='<div class="p-ev"><span class="p-time">'+escapeHtml(e.time)+'</span><span><b>'+escapeHtml(e.title)+'</b><br><span class="p-meta">'+meta+'</span>'+(e.description?'<br><span class="p-meta">'+escapeHtml(e.description)+'</span>':'')+'</span></div>';
   });
   html+='</div>';
@@ -326,7 +327,12 @@ function gerarPDF(){
    doc.setTextColor(0);doc.setFont('helvetica','bold');doc.setFontSize(9.5);
    doc.text(e.time,M+2,y);
    const t=doc.splitTextToSize(e.title,140);doc.text(t,M+18,y);y+=t.length*4.5;
-   const meta=[e.setor||'Sede',e.scope||'Setor',e.category,e.location,e.responsible?'Resp.: '+e.responsible:''].filter(Boolean).join(' - ');
+   const pendentePDF=(typeof aprovados!=='undefined'&&aprovados[String(e.id)]===false);
+   if(pendentePDF){
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(160,77,22);
+    doc.text('AGUARDANDO APROVACAO',M+18,y);y+=4;
+   }
+   const meta=[e.setor||'Sede',e.scope||'Setor',e.category,e.departamento||'',e.location,e.responsible?'Resp.: '+e.responsible:''].filter(Boolean).join(' - ');
    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(110);
    const m=doc.splitTextToSize(meta,140);doc.text(m,M+18,y);y+=m.length*3.8;
    if(e.description){const ds=doc.splitTextToSize(e.description,140);doc.text(ds,M+18,y);y+=ds.length*3.8}
