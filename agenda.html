@@ -190,10 +190,21 @@ function agendaDaCongregacao(congr,setor){
  }).sort(function(a,b){return (a.date+a.time).localeCompare(b.date+b.time)});
 }
 
-function imprimirCongregacao(congr,setor){
+async function imprimirCongregacao(congr,setor){
  if(!congr&&!setor){toast('Escolha uma congregacao.');return}
+ const lista=agendaDaCongregacao(congr||'',setor||'');
+ if(!lista.length){toast('Nenhum evento para esta congregacao.');return}
+ toast('Gerando PDF...');
  impressaoEspecial={congregacao:congr||'',setor:setor||''};
- try{ gerarPDF(); }finally{ impressaoEspecial=null; }
+ try{
+  await carregarJsPDF();
+  gerarPDF();
+ }catch(e){
+  console.log('[mural] falha ao gerar o PDF:',e);
+  toast('Sem internet para gerar o PDF. Tente de novo.');
+ }finally{
+  impressaoEspecial=null;
+ }
 }
 
 function filtered(){if(impressaoEspecial)return agendaDaCongregacao(impressaoEspecial.congregacao,impressaoEspecial.setor);let cat=document.getElementById('categoryFilter').value,loc=document.getElementById('locationFilter').value,scope=document.getElementById('scopeFilter').value,setor=document.getElementById('setorFilter').value,q=document.getElementById('search').value.toLowerCase();return events.filter(e=>(!cat||e.category===cat)&&(!loc||e.location===loc)&&(!scope||(e.scope||'Setor')===scope)&&(!setor||(e.setor||'Sede')===setor)&&(!q||[e.title,e.location,e.responsible,e.description,e.scope,e.setor].join(' ').toLowerCase().includes(q))).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time))}
@@ -335,6 +346,12 @@ function gerarPDF(){
  const f=[cat,esc,setorSel,loc,q?'"'+q+'"':''].filter(Boolean).join(' - ');
  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(110);
  const qtdPend=(typeof aprovados!=='undefined')?arr.filter(e=>aprovados[String(e.id)]===false).length:0;
+ if(typeof impressaoEspecial!=='undefined'&&impressaoEspecial){
+  const alvoTxt=impressaoEspecial.congregacao||impressaoEspecial.setor;
+  doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(11,79,108);
+  doc.text(alvoTxt,M,y);y+=6;
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(110);
+ }
  doc.text(arr.length+' evento(s)'+(qtdPend?'  |  '+qtdPend+' aguardando aprovacao':'')+(f?'  |  Filtros: '+f:'')+'  |  Gerado em '+new Date().toLocaleDateString('pt-BR'),M,y);
  y+=8;
  const g={};arr.forEach(e=>{(g[e.date]=g[e.date]||[]).push(e)});
