@@ -2525,7 +2525,7 @@ function marcarVersao(){
  if(!alvo){setTimeout(marcarVersao,700);return}
  const p=document.createElement('p');
  p.id='versaoAgenda';
- p.textContent='Agenda v126 \u00b7 15.09.2026';
+ p.textContent='Agenda v127 \u00b7 15.09.2026';
  alvo.appendChild(p);
 }
 
@@ -3014,10 +3014,19 @@ function aplicarSequencia(){
   return;
  }
  let idx=-1;
- for(let i=events.length-1;i>=0;i--){
-  if(!(String(events[i].id) in ultimoEstado)){idx=i;break}
+ const alvo=window._idRecemCriado;
+ if(alvo){
+  for(let i=0;i<events.length;i++){
+   if(String(events[i].id)===String(alvo)){idx=i;break}
+  }
  }
- if(idx<0)return;
+ if(idx<0){
+  // reserva: o mais recente que ainda nao foi para o servidor
+  for(let i=events.length-1;i>=0;i--){
+   if(!(String(events[i].id) in ultimoEstado)){idx=i;break}
+  }
+ }
+ if(idx<0){_seqPendente=null;return}
  const base=events[idx];
  if(base.grupo){_seqPendente=null;return}
  const n=diasEntre(base.date,_seqPendente.fim);
@@ -3150,11 +3159,13 @@ function prepararDepto(m,id){
 function aplicarDeptoPendente(){
  if(!_deptoPendente)return;
  let idx=-1;
- if(_deptoPendente.alvo){
+ const alvoDep=_deptoPendente.alvo||window._idRecemCriado;
+ if(alvoDep){
   for(let i=0;i<events.length;i++){
-   if(String(events[i].id)===String(_deptoPendente.alvo)){idx=i;break}
+   if(String(events[i].id)===String(alvoDep)){idx=i;break}
   }
- }else{
+ }
+ if(idx<0){
   for(let i=events.length-1;i>=0;i--){
    if(!(String(events[i].id) in ultimoEstado)){idx=i;break}
   }
