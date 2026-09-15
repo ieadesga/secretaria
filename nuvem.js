@@ -330,8 +330,10 @@ function instalarGancho(){
 
 function sincronizarLocal(){
  if(!usuario||pausado)return;
- marcarAutor();
+ aplicarDeptoPendente();
  aplicarCartazPendente();
+ aplicarSequencia();
+ marcarAutor();
  enviarNuvem();
 }
 
@@ -2502,7 +2504,7 @@ function marcarVersao(){
  if(!alvo){setTimeout(marcarVersao,700);return}
  const p=document.createElement('p');
  p.id='versaoAgenda';
- p.textContent='Agenda v121 \u00b7 14.09.2026';
+ p.textContent='Agenda v122 \u00b7 14.09.2026';
  alvo.appendChild(p);
 }
 
