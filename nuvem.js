@@ -149,7 +149,9 @@ async function enviarNuvem(){
  for(let i=0;i<mudados.length;i++){
   const x=mudados[i];
   const eraNovo=!(x.id in ultimoEstado);
-  const r=await sb.from('eventos').upsert([x]);
+  const carga=Object.assign({},x);
+  if(eraNovo&&usuario)carga.criado_por=usuario.id;
+  const r=await sb.from('eventos').upsert([carga]);
   if(r.error){
    naoEscreve[x.id]=JSON.stringify(x.dados);
    console.log('[nuvem] recusado:',x.dados.title,'| setor:',x.dados.setor,
@@ -164,9 +166,9 @@ async function enviarNuvem(){
    salvos++;
    if(eraNovo){
     criados++;
+    donos[x.id]=usuario.id;
     if(!ehSecretaria()){
      aprovados[x.id]=false;
-     donos[x.id]=usuario.id;
      delete recusas[x.id];
     }else{
      aprovados[x.id]=true;
@@ -552,7 +554,10 @@ function travarModalLeitura(id){
  else if(ehSecretaria()){travar=false}
  else if(ehRestrito()){
   const k=String(id||'');
-  if(id&&donos[k]!==usuario.id){travar=true;motivo='outro'}
+  const semDono=!(k in donos)||donos[k]==null;
+  const aindaNaoEnviado=!(k in ultimoEstado);
+  const meu=(donos[k]===usuario.id)||(semDono&&aindaNaoEnviado);
+  if(id&&!meu){travar=true;motivo='outro'}
   else if(id&&aprovados[k]===true){travar=true;motivo='publicado'}
  }else{travar=true}
  m.querySelectorAll('button').forEach(function(b){
@@ -2520,7 +2525,7 @@ function marcarVersao(){
  if(!alvo){setTimeout(marcarVersao,700);return}
  const p=document.createElement('p');
  p.id='versaoAgenda';
- p.textContent='Agenda v123 \u00b7 14.09.2026';
+ p.textContent='Agenda v125 \u00b7 15.09.2026';
  alvo.appendChild(p);
 }
 
@@ -3061,6 +3066,16 @@ async function excluirSequencia(grupo){
  aviso(apagados.length+' evento(s) exclu\u00eddo(s).');
 }
 
+
+/* ---------- departamento lido direto do formulario ---------- */
+function deptoEscolhido(){
+ const box=document.getElementById('deptoBox');
+ if(!box)return '';
+ const on=box.querySelector('.dep-op.on');
+ if(!on)return '';
+ return on.getAttribute('data-d')||'';
+}
+
 /* ---------- departamentos ---------- */
 const DEPARTAMENTOS=[{n:'UMADESGA',c:'#b8365c'},{n:'SEMEAR',c:'#2c7a2f'},{n:'DENOC',c:'#3a5bbf'},{n:'DEFAD',c:'#9c5636'},{n:'DEPIN',c:'#7d6a20'},{n:'DEMAD',c:'#0d8074'},{n:'DE3id',c:'#7d4bb0'},{n:'DEFAM',c:'#a3299b'},{n:'DENEC',c:'#1e5f96'},{n:'DIRETORIA',c:'#3f4a50'},{n:'UNIFICADO',c:'#4f751a'}];
 let deptoFiltro='', _deptoPendente=null;
@@ -3112,6 +3127,13 @@ function prepararDepto(m,id){
    box.querySelectorAll('.dep-op').forEach(function(x){x.classList.remove('on')});
    b.classList.add('on');
    _deptoPendente={alvo:id||null,valor:b.getAttribute('data-d')};
+   if(id){
+    const ev2=events.filter(function(e){return String(e.id)===String(id)})[0];
+    if(ev2){
+     const v=b.getAttribute('data-d');
+     if(v)ev2.departamento=v;else delete ev2.departamento;
+    }
+   }
   };
  });
 }
