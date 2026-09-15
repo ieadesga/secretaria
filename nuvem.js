@@ -2525,7 +2525,7 @@ function marcarVersao(){
  if(!alvo){setTimeout(marcarVersao,700);return}
  const p=document.createElement('p');
  p.id='versaoAgenda';
- p.textContent='Agenda v125 \u00b7 15.09.2026';
+ p.textContent='Agenda v126 \u00b7 15.09.2026';
  alvo.appendChild(p);
 }
 
@@ -2910,6 +2910,7 @@ function paraTexto(d){
 }
 
 function prepararSequencia(m,id){
+ if(!id)_seqPendente=null;
  const antigo=document.getElementById('seqBox');
  if(antigo)antigo.remove();
  const ev=id?events.filter(function(e){return String(e.id)===String(id)})[0]:null;
@@ -2983,7 +2984,7 @@ function prepararSequencia(m,id){
     dica.className='seq-dica ruim';
     dica.textContent='Per\u00edodo muito longo ('+(n+1)+' dias). O limite \u00e9 61 dias.';
    }else{
-    _seqPendente={fim:fim.value};
+    _seqPendente={fim:fim.value,quando:Date.now()};
     dica.className='seq-dica bom';
     dica.textContent='Ser\u00e3o criados '+(n+1)+' eventos, um por dia.';
    }
@@ -3007,6 +3008,11 @@ function podeMexer(id){
 
 function aplicarSequencia(){
  if(!_seqPendente||!_seqPendente.fim)return;
+ if(_seqPendente.quando&&(Date.now()-_seqPendente.quando)>120000){
+  console.log('[nuvem] periodo expirado, descartado');
+  _seqPendente=null;
+  return;
+ }
  let idx=-1;
  for(let i=events.length-1;i>=0;i--){
   if(!(String(events[i].id) in ultimoEstado)){idx=i;break}
@@ -3070,10 +3076,13 @@ async function excluirSequencia(grupo){
 /* ---------- departamento lido direto do formulario ---------- */
 function deptoEscolhido(){
  const box=document.getElementById('deptoBox');
- if(!box)return '';
- const on=box.querySelector('.dep-op.on');
- if(!on)return '';
- return on.getAttribute('data-d')||'';
+ if(box){
+  const on=box.querySelector('.dep-op.on');
+  if(on)return on.getAttribute('data-d')||'';
+ }
+ if(_deptoPendente&&_deptoPendente.valor)return _deptoPendente.valor;
+ if(ehDepartamento()&&perfil.departamento)return perfil.departamento;
+ return '';
 }
 
 /* ---------- departamentos ---------- */
