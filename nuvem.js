@@ -82,7 +82,15 @@ async function baixarNuvem(){
  });
  avisarAutorRecusas();
  atualizarSino();
- if(usuario){marcarAutor();if(haDiferenca())enviarNuvem()}
+ if(usuario){
+  marcarAutor();
+  if(haDiferenca()){
+   // ha coisa local ainda nao enviada: manda agora e deixa a proxima leitura reconciliar,
+   // para nao apagar da tela um evento recem-criado
+   await enviarNuvem();
+   return;
+  }
+ }
  idsRemotos=new Set(r.data.map(function(x){return String(x.id)}));
  baixouUmaVez=true;
  limparLixeiraAntiga(idsRemotos);
@@ -101,9 +109,17 @@ async function baixarNuvem(){
   montarLegendaDepto();
   return;
  }
+ const naoEnviados=events.filter(function(e){
+  const k=String(e.id);
+  return !idsRemotos.has(k) && !lixeira[k];
+ });
+ if(naoEnviados.length){
+  console.log('[nuvem] preservando',naoEnviados.length,'evento(s) ainda nao enviado(s)');
+ }
  pausado=true;
  events.length=0;
  novos.forEach(function(e){if(!lixeira[String(e.id)])events.push(e)});
+ naoEnviados.forEach(function(e){events.push(e)});
  gravarLocal();
  pausado=false;
  render();
@@ -2504,7 +2520,7 @@ function marcarVersao(){
  if(!alvo){setTimeout(marcarVersao,700);return}
  const p=document.createElement('p');
  p.id='versaoAgenda';
- p.textContent='Agenda v122 \u00b7 14.09.2026';
+ p.textContent='Agenda v123 \u00b7 14.09.2026';
  alvo.appendChild(p);
 }
 
